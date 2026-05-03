@@ -3,5 +3,8 @@
   <input name="q" placeholder="Search">
   <button type="submit">Search</button>
 </form>
-{% if query %}<p>Results for: {{ query }}</p>{% endif %}
+{% if query %}
+{% set safe_query = query | replace("javascript:", "") | replace("JAVASCRIPT:", "") %}
+<p>Results for: {{ safe_query }}</p>
+{% endif %}
 </body></html>
