@@ -1,0 +1,7 @@
+<!DOCTYPE html><html><body>
+<form method="get">
+  <input name="q" placeholder="Search">
+  <button type="submit">Search</button>
+</form>
+{% if query %}<p>Results for: {{ query }}</p>{% endif %}
+</body></html>
