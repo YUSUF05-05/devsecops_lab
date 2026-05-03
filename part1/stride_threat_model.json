@@ -1,0 +1,151 @@
+{
+  "threat_model": {
+    "application": "DevSecOps Flask Lab",
+    "version": "1.0",
+    "date": "2024-01-01",
+    "authors": ["Lab Instructor"],
+    "scope": "Web application with authentication, database, and OS interaction",
+    "assets": [
+      {"id": "A1", "name": "User credentials", "sensitivity": "HIGH"},
+      {"id": "A2", "name": "User data in SQLite DB", "sensitivity": "HIGH"},
+      {"id": "A3", "name": "Admin functionality", "sensitivity": "HIGH"},
+      {"id": "A4", "name": "Host filesystem", "sensitivity": "MEDIUM"},
+      {"id": "A5", "name": "Application server", "sensitivity": "HIGH"}
+    ],
+    "trust_boundaries": [
+      "Internet ↔ Flask Application",
+      "Flask Application ↔ SQLite Database",
+      "Flask Application ↔ Operating System"
+    ],
+    "threats": [
+      {
+        "id": "T1",
+        "stride_category": "Spoofing",
+        "title": "Authentication Bypass via SQL Injection",
+        "description": "Attacker submits ' OR '1'='1 in login form to bypass password check",
+        "affected_asset": "A1",
+        "attack_vector": "/login POST endpoint",
+        "likelihood": "HIGH",
+        "impact": "CRITICAL",
+        "risk_score": 9.8,
+        "mitigation": "Use parameterized queries (SQLite ? placeholders). Never interpolate user input into SQL.",
+        "status": "FIXED in app_secure.py",
+        "cwe": "CWE-89"
+      },
+      {
+        "id": "T2",
+        "stride_category": "Tampering",
+        "title": "Insecure Deserialization via Pickle",
+        "description": "Attacker sends crafted pickle payload to /load_profile to execute arbitrary code",
+        "affected_asset": "A5",
+        "attack_vector": "/load_profile POST, data parameter",
+        "likelihood": "MEDIUM",
+        "impact": "CRITICAL",
+        "risk_score": 9.0,
+        "mitigation": "Never deserialize untrusted data with pickle. Use JSON with schema validation instead.",
+        "status": "FIXED in app_secure.py",
+        "cwe": "CWE-502"
+      },
+      {
+        "id": "T3",
+        "stride_category": "Repudiation",
+        "title": "Missing Audit Logging",
+        "description": "No logs for authentication attempts, failed logins, or admin actions. Cannot detect or investigate attacks.",
+        "affected_asset": "A1",
+        "attack_vector": "All endpoints",
+        "likelihood": "HIGH",
+        "impact": "MEDIUM",
+        "risk_score": 6.0,
+        "mitigation": "Log all auth events, failures, and admin actions with timestamps and source IPs.",
+        "status": "FIXED in app_secure.py",
+        "cwe": "CWE-778"
+      },
+      {
+        "id": "T4",
+        "stride_category": "Information Disclosure",
+        "title": "Sensitive Data Exposure via API",
+        "description": "/api/users returns plaintext passwords and all user data without authentication",
+        "affected_asset": "A2",
+        "attack_vector": "/api/users GET endpoint",
+        "likelihood": "HIGH",
+        "impact": "HIGH",
+        "risk_score": 8.5,
+        "mitigation": "Require auth on all API endpoints; never return password hashes; apply field filtering.",
+        "status": "FIXED in app_secure.py",
+        "cwe": "CWE-200"
+      },
+      {
+        "id": "T5",
+        "stride_category": "Denial of Service",
+        "title": "Command Injection via Ping Endpoint",
+        "description": "Attacker injects OS commands: host=127.0.0.1; rm -rf / to run arbitrary commands",
+        "affected_asset": "A5",
+        "attack_vector": "/ping?host= parameter",
+        "likelihood": "HIGH",
+        "impact": "CRITICAL",
+        "risk_score": 9.5,
+        "mitigation": "Use subprocess with argument lists (no shell=True); whitelist allowed hosts.",
+        "status": "FIXED in app_secure.py",
+        "cwe": "CWE-78"
+      },
+      {
+        "id": "T6",
+        "stride_category": "Elevation of Privilege",
+        "title": "Path Traversal / Local File Read",
+        "description": "Attacker reads /etc/passwd via /read_file?file=../../../etc/passwd",
+        "affected_asset": "A4",
+        "attack_vector": "/read_file?file= parameter",
+        "likelihood": "HIGH",
+        "impact": "HIGH",
+        "risk_score": 8.0,
+        "mitigation": "Use werkzeug.utils.safe_join; whitelist allowed filenames; never use raw user input in file paths.",
+        "status": "FIXED in app_secure.py",
+        "cwe": "CWE-22"
+      },
+      {
+        "id": "T7",
+        "stride_category": "Information Disclosure",
+        "title": "XSS via Reflected Search Parameter",
+        "description": "Attacker injects <script>document.cookie</script> into search query to steal session tokens",
+        "affected_asset": "A1",
+        "attack_vector": "/search?q= parameter",
+        "likelihood": "HIGH",
+        "impact": "HIGH",
+        "risk_score": 7.5,
+        "mitigation": "Use Jinja2 templates with auto-escaping enabled; set Content-Security-Policy headers.",
+        "status": "FIXED in app_secure.py",
+        "cwe": "CWE-79"
+      },
+      {
+        "id": "T8",
+        "stride_category": "Spoofing",
+        "title": "Hardcoded Secret Key",
+        "description": "Static secret key in source allows session forging across all deployments",
+        "affected_asset": "A1",
+        "attack_vector": "Source code / git history",
+        "likelihood": "MEDIUM",
+        "impact": "HIGH",
+        "risk_score": 7.0,
+        "mitigation": "Load secret key from environment variable; generate cryptographically random key per deployment.",
+        "status": "FIXED in app_secure.py",
+        "cwe": "CWE-798"
+      }
+    ],
+    "summary": {
+      "total_threats": 8,
+      "by_stride": {
+        "Spoofing": 2,
+        "Tampering": 1,
+        "Repudiation": 1,
+        "Information Disclosure": 2,
+        "Denial of Service": 1,
+        "Elevation of Privilege": 1
+      },
+      "by_risk": {
+        "CRITICAL": 3,
+        "HIGH": 4,
+        "MEDIUM": 1
+      }
+    }
+  }
+}
