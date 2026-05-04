@@ -2,7 +2,7 @@ name: DevSecOps CI/CD Pipeline
 
 on:
   push:
-    branches: [main, develop]
+    branches: ["**"]
   pull_request:
     branches: [main]
 
@@ -28,7 +28,7 @@ jobs:
 
       - name: Run Bandit SAST
         run: |
-          bandit -r code/session1/app_secure.py \
+          bandit -r part1/app_secure.py \
             -f json \
             -o bandit_report.json \
             --severity-level medium \
@@ -74,10 +74,10 @@ jobs:
       - name: Check dependencies for CVEs
         run: |
           safety check \
-            -r code/session1/requirements.txt \
+            -r requirements.txt \
             --json \
             --output safety_report.json || true
-          
+
           # Fail if critical vulnerabilities found
           python -c "
           import json, sys
@@ -114,13 +114,13 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -r code/session1/requirements.txt
+          pip install -r requirements.txt
           pip install pytest pytest-flask
 
       - name: Run security tests
         run: |
-          cd code/session2
-          pytest test_security.py -v \
+          cd part1
+          python -m pytest ../part2/test_security.py -v \
             --tb=short \
             --junitxml=security_test_results.xml
 
@@ -129,7 +129,7 @@ jobs:
         if: always()
         with:
           name: security-test-results
-          path: code/session2/security_test_results.xml
+          path: part1/security_test_results.xml
 
   # ─── Job 4: Secret Scanning ──────────────────────────────────────────────────
   secret-scan:
@@ -162,12 +162,12 @@ jobs:
   container-scan:
     name: 🐳 Container Security Scan
     runs-on: ubuntu-latest
-    if: ${{ hashFiles('Dockerfile') != '' }}
+    if: always()
     steps:
       - uses: actions/checkout@v4
 
       - name: Build Docker image
-        run: docker build -t lab-app:${{ github.sha }} .
+        run: docker build -t lab-app:${{ github.sha }} part3/
 
       - name: Run Trivy container scan
         uses: aquasecurity/trivy-action@master
@@ -188,15 +188,15 @@ jobs:
 
       - name: Start Flask app
         run: |
-          pip install -r code/session1/requirements.txt
-          SECRET_KEY=testkey python code/session1/app_secure.py &
+          pip install -r requirements.txt
+          SECRET_KEY=testkey python part1/app_secure.py &
           sleep 3
-          curl -f http://127.0.0.1:5001/ || exit 1
+          curl -f http://127.0.0.1:5000/ || exit 1
 
       - name: Run ZAP Baseline Scan
         uses: zaproxy/action-baseline@v0.11.0
         with:
-          target: "http://127.0.0.1:5001"
+          target: "http://127.0.0.1:5000"
           rules_file_name: ".zap/rules.tsv"
           cmd_options: "-a"
 

@@ -1,0 +1,10 @@
+<!DOCTYPE html><html><body>
+<form method="get">
+  <input name="q" placeholder="Search">
+  <button type="submit">Search</button>
+</form>
+{% if query %}
+{% set safe_query = query | replace("javascript:", "") | replace("JAVASCRIPT:", "") %}
+<p>Results for: {{ safe_query }}</p>
+{% endif %}
+</body></html>

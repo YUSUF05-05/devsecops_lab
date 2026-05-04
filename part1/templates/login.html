@@ -1,0 +1,8 @@
+<!DOCTYPE html><html><body>
+<form method="post">
+  <input name="username" placeholder="Username">
+  <input name="password" type="password" placeholder="Password">
+  <button type="submit">Login</button>
+</form>
+{% if error %}<p>{{ error }}</p>{% endif %}
+</body></html>
